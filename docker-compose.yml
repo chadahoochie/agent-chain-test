@@ -1,0 +1,55 @@
+
+services:
+  analyzer_agent:
+    build: ./agents/analyzer_agent
+    ports:
+      - "50051:50051"
+    volumes:
+      - ../protos:/protos:ro
+      - ./data/analyzer:/state
+
+  optimizer_agent:
+    build: ./agents/optimizer_agent
+    ports:
+      - "50052:50051"
+    volumes:
+      - ../protos:/protos:ro
+      - ./data/optimizer:/state
+
+  testing_agent:
+    build: ./agents/testing_agent
+    ports:
+      - "50053:50051"
+    volumes:
+      - ../protos:/protos:ro
+      - ./data/test:/state
+
+  review_agent:
+    build: ./agents/review_agent
+    ports:
+      - "50054:50051"
+    volumes:
+      - ../protos:/protos:ro
+      - ./data/review:/state
+
+  orchestrator:
+    build: ./orchestrator
+    depends_on:
+      - analyzer_agent
+      - optimizer_agent
+      - testing_agent
+      - review_agent
+    volumes:
+      - ../protos:/protos:ro
+      - ./data/orchestrator:/state
+    ports:
+      - "8081:8080"
+
+  mcp:
+    image: docker/mcp-gateway:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - MCP_MODELS__0__ID=llama-2-13b
+      - MCP_MODELS__0__PROVIDER=llama-cpp
+      - MCP_MODELS__0__ENDPOINT=http://localhost:8000/v1

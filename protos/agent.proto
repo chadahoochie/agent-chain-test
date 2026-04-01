@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+
+package agentchain;
+
+// Common request for all agents
+enum TaskType {
+  ANALYZE = 0;
+  OPTIMIZE = 1;
+  TEST = 2;
+  REVIEW = 3;
+}
+
+message AgentTask {
+  string task_id = 1;
+  TaskType type = 2;
+  string code_path = 3; // Path to code or repo
+  string context = 4;   // JSON-encoded context or prior agent output
+  map<string, string> params = 5; // Additional agent-specific params
+}
+
+message AgentResult {
+  string task_id = 1;
+  bool success = 2;
+  string output = 3; // JSON-encoded result or summary
+  string error = 4;
+}
+
+message StateRequest {
+  string key = 1;
+}
+
+message StateResponse {
+  string key = 1;
+  string value = 2;
+}
+
+service AgentService {
+  rpc ProcessTask(AgentTask) returns (AgentResult);
+  rpc GetState(StateRequest) returns (StateResponse);
+  rpc SetState(StateResponse) returns (AgentResult);
+  rpc HealthCheck(StateRequest) returns (AgentResult);
+}

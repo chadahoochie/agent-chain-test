@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+*.manifest
+*.spec
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+.code-workspace
+
+# Environments
+.env
+.venv/
+venv/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker/Podman
+*.pid
+*.log
+*.sock
+
+# Model files (large, not tracked)
+models/*.gguf
+models/*.bin
+
+# Compose override
+*.override.yml
+
+# Misc
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Test output
+htmlcov/
+.coverage
+.tox/
+.cache/
+pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Pyre
+.pyre/
+
+# Poetry
+poetry.lock
+
+# Pipenv
+Pipfile.lock
+
+# Others
+*.sqlite3
+*.db
+
+# Ignore secrets
+secrets.*

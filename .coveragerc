@@ -1,0 +1,4 @@
+[run]
+omit =
+    */agent_pb2.py
+    */agent_pb2_grpc.py
