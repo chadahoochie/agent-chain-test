@@ -19,6 +19,7 @@ class ModelClient:
         self.provider = os.environ.get("MODEL_PROVIDER", "local_llama")
         self.endpoint = os.environ.get("MODEL_ENDPOINT", "http://localhost:8001/v1/chat/completions")
         self.model_name = os.environ.get("MODEL_NAME", "llama-2-13b")
+        self.timeout_seconds = float(os.environ.get("MODEL_TIMEOUT_SECONDS", "180"))
 
     def query_model(self, prompt):
         headers = {"Content-Type": "application/json"}
@@ -31,7 +32,12 @@ class ModelClient:
             "temperature": 0.2
         }
         try:
-            resp = requests.post(self.endpoint, headers=headers, data=json.dumps(data), timeout=60)
+            resp = requests.post(
+                self.endpoint,
+                headers=headers,
+                data=json.dumps(data),
+                timeout=self.timeout_seconds,
+            )
             resp.raise_for_status()
             result = resp.json()
             # Expecting model to return JSON in the first assistant message

@@ -1,3 +1,5 @@
+import importlib
+
 from orchestrator import orchestrator as mut
 
 
@@ -20,8 +22,9 @@ def test_call_agent_uses_stub_and_returns_response(monkeypatch):
         def __init__(self, channel):
             seen["channel"] = channel
 
-        def ProcessTask(self, task):
+        def ProcessTask(self, task, **kwargs):
             seen["task"] = task
+            seen["kwargs"] = kwargs
             return "ok-response"
 
     monkeypatch.setattr(mut.grpc, "insecure_channel", fake_insecure_channel)
@@ -33,6 +36,7 @@ def test_call_agent_uses_stub_and_returns_response(monkeypatch):
     assert result == "ok-response"
     assert seen["address"] == "analyzer_agent:50051"
     assert seen["task"] is task
+    assert seen["kwargs"]["wait_for_ready"] is True
 
 
 def test_main_builds_task_calls_analyzer_and_prints(monkeypatch, capsys):
@@ -54,10 +58,27 @@ def test_main_builds_task_calls_analyzer_and_prints(monkeypatch, capsys):
 
     assert seen["address"] == "analyzer_agent:50051"
     assert seen["task"]["task_id"] == "1"
-    assert seen["task"]["code_path"] == "/code"
+    assert seen["task"]["code_path"] == "/workspace/agent_chain_controller.py"
     output = capsys.readouterr().out
     assert "Analyzer result:" in output
     assert "analysis" in output
+
+
+def test_main_uses_code_path_from_environment(monkeypatch):
+    monkeypatch.setenv("ORCHESTRATOR_CODE_PATH", "/tmp/custom.cs")
+    module = importlib.reload(mut)
+    seen = {}
+
+    def fake_task_ctor(**kwargs):
+        seen["task_kwargs"] = kwargs
+        return kwargs
+
+    monkeypatch.setattr(module.agent_pb2, "AgentTask", fake_task_ctor)
+    monkeypatch.setattr(module, "call_agent", lambda _address, _task: "ok")
+
+    module.main()
+
+    assert seen["task_kwargs"]["code_path"] == "/tmp/custom.cs"
 
 
 def test_main_propagates_call_agent_error(monkeypatch):

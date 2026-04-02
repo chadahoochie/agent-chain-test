@@ -1,47 +1,133 @@
 
 services:
+  llama-cpp:
+    image: ghcr.io/abetlen/llama-cpp-python:latest
+    command: >-
+      python3 -m llama_cpp.server
+      --model /models/codellama-13b.Q4_K_M.gguf
+      --host 0.0.0.0
+      --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/models:Z
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/models', timeout=5)"
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
   analyzer_agent:
     build: ./agents/analyzer_agent
+    depends_on:
+      llama-cpp:
+        condition: service_healthy
+    environment:
+      - MODEL_ENDPOINT=http://llama-cpp:8000/v1/chat/completions
+      - MODEL_NAME=llama-2-13b
+      - MODEL_TIMEOUT_SECONDS=300
     ports:
       - "50051:50051"
     volumes:
       - ../protos:/protos:ro
-      - ./data/analyzer:/state
+      - ./data/analyzer:/state:Z
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',50051)); s.close()"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   optimizer_agent:
     build: ./agents/optimizer_agent
+    depends_on:
+      llama-cpp:
+        condition: service_healthy
+    environment:
+      - MODEL_ENDPOINT=http://llama-cpp:8000/v1/chat/completions
+      - MODEL_NAME=llama-2-13b
     ports:
       - "50052:50051"
     volumes:
       - ../protos:/protos:ro
-      - ./data/optimizer:/state
+      - ./data/optimizer:/state:Z
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',50051)); s.close()"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   testing_agent:
     build: ./agents/testing_agent
+    depends_on:
+      llama-cpp:
+        condition: service_healthy
+    environment:
+      - MODEL_ENDPOINT=http://llama-cpp:8000/v1/chat/completions
+      - MODEL_NAME=llama-2-13b
     ports:
       - "50053:50051"
     volumes:
       - ../protos:/protos:ro
-      - ./data/test:/state
+      - ./data/test:/state:Z
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',50051)); s.close()"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   review_agent:
     build: ./agents/review_agent
+    depends_on:
+      llama-cpp:
+        condition: service_healthy
+    environment:
+      - MODEL_ENDPOINT=http://llama-cpp:8000/v1/chat/completions
+      - MODEL_NAME=llama-2-13b
     ports:
       - "50054:50051"
     volumes:
       - ../protos:/protos:ro
-      - ./data/review:/state
+      - ./data/review:/state:Z
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',50051)); s.close()"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   orchestrator:
     build: ./orchestrator
     depends_on:
-      - analyzer_agent
-      - optimizer_agent
-      - testing_agent
-      - review_agent
+      analyzer_agent:
+        condition: service_healthy
+      optimizer_agent:
+        condition: service_healthy
+      testing_agent:
+        condition: service_healthy
+      review_agent:
+        condition: service_healthy
     volumes:
       - ../protos:/protos:ro
-      - ./data/orchestrator:/state
+      - ./data/orchestrator:/state:Z
+    environment:
+      - ORCHESTRATOR_CODE_PATH=/state/input.cs
+      - ORCHESTRATOR_OUTPUT_FILE=/state/last_orchestrator_output.txt
+      - ORCHESTRATOR_RPC_TIMEOUT_SECONDS=360
+      - ORCHESTRATOR_RPC_MAX_RETRIES=2
     ports:
       - "8081:8080"
 
